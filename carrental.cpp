@@ -497,10 +497,8 @@ public:
 
     void removeVehicle() {
         string vehicleID;
-
         cout << "Enter vehicle ID to remove: ";
         cin >> vehicleID;
-
         system.removeVehicle(vehicleID);
     }
 };
