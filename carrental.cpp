@@ -23,12 +23,16 @@ public:
         cout << "\nVehicle ID: " << vehicleID
              << "\nModel: " << model
              << "\nPrice per day: $" << rentalPricePerDay
-             << "\nStatus: " << (isRented ? "Rented" : "Available") << endl;
+             << "\nStatus: " << (isRented ? "Rented" : "Available" ) << endl;
     }
 
     bool isAvailable() const {
         return !isRented;
     }
+
+    string getModelName() const { 
+        return model;
+    } 
 
     void rent() {
         isRented = true;
@@ -128,7 +132,7 @@ public:
     void displayRecord() const {
         cout << "\n--- Rental Record ---"
              << "\nUser: " << user.getName() << " (License ID: " << user.getLicenseID() << ")"
-             << "\nVehicle ID: " << vehicle->getID() << " (Model: " << vehicle->getID() << ")"
+             << "\nVehicle ID: " << vehicle->getID() << " (Model: " << vehicle->getModelName() << ")"
              << "\nRental Date: " << rentalDate
              << "\nDuration: " << rentalDuration << " days"
              << "\nTotal Cost: $" << (rentalDuration * vehicle->getRentalPrice()) << endl;
@@ -150,7 +154,7 @@ private:
     vector<Vehicle*> vehicles;
     vector<RentalRecord> rentalRecords;
     unordered_map<string, Vehicle*> vehicleMap;
-
+    
 public:
     void addUser(const User& user) {
         users.push_back(user);
@@ -351,55 +355,88 @@ public:
     }
 
     void rentVehicle() {
-        string userName, userLicenseID, vehicleID, rentalDate;
-        int rentalDays;
-
-        cout << "Enter your name: ";
-        cin.ignore();
-        getline(cin, userName);
-        cout << "Enter your license ID: ";
-        cin >> userLicenseID;
-
-        cout << "Enter vehicle ID to rent: ";
-        cin >> vehicleID;
-
-        cout << "Enter rental date (YYYY-MM-DD): ";
-        cin >> rentalDate;
-        while (!system.isValidDate(rentalDate)) {
-            cout << "Invalid date format. Please enter in YYYY-MM-DD format: ";
-            cin >> rentalDate;
-        }
-
-        cout << "Enter number of rental days: ";
-        cin >> rentalDays;
-        while (cin.fail() || rentalDays <= 0) {
-            cout << "Invalid input. Please enter a valid number of rental days: ";
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cin >> rentalDays;
-        }
-
-        system.rentVehicle(userName, userLicenseID, vehicleID, rentalDate, rentalDays);
-    }
-
+         string userName, userLicenseID, vehicleID, rentalDate;
+         int rentalDays;
+     
+         try {
+             cout << "Enter your name: ";
+             cin.ignore();
+             getline(cin, userName);
+             cout << "Enter your license ID: ";
+             cin >> userLicenseID;
+     
+             cout << "Enter vehicle ID to rent: ";
+             cin >> vehicleID;
+     
+             cout << "Enter rental date (YYYY-MM-DD): ";
+             cin >> rentalDate;
+             while (!system.isValidDate(rentalDate)) {
+                 cout << "Invalid date format. Please enter in YYYY-MM-DD format: ";
+                 cin >> rentalDate;
+             }
+     
+             cout << "Enter number of rental days: ";
+             cin >> rentalDays;
+             if (cin.fail() || rentalDays <= 0) {
+                 throw invalid_argument("Rental days must be a positive integer.");
+             }
+     
+             system.rentVehicle(userName, userLicenseID, vehicleID, rentalDate, rentalDays);
+         } catch (const invalid_argument& e) {
+             cout << "Error: " << e.what() << "\n";
+             cin.clear();  // Clear input stream state.
+             cin.ignore(numeric_limits<streamsize>::max(), '\n');  // Ignore erroneous input.
+         } catch (const exception& e) {
+             cout << "An unexpected error occurred: " << e.what() << "\n";
+         }
+     }
+     
     void returnVehicle() {
-        string vehicleID;
-        int actualRentalDays;
-
-        cout << "Enter vehicle ID to return: ";
-        cin >> vehicleID;
-        cout << "Enter actual number of rental days: ";
-        cin >> actualRentalDays;
-
-        while (cin.fail() || actualRentalDays <= 0) {
-            cout << "Invalid input. Please enter a valid number of rental days: ";
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cin >> actualRentalDays;
-        }
-
-        system.returnVehicle(vehicleID, actualRentalDays);
-    }
+         string vehicleID;
+         int actualRentalDays;
+     
+         try {
+             cout << "Enter vehicle ID to return: ";
+             cin >> vehicleID;
+     
+             cout << "Enter actual number of rental days: ";
+             cin >> actualRentalDays;
+             if (cin.fail() || actualRentalDays <= 0) {
+                 throw invalid_argument("Rental days must be a positive integer.");
+             }
+     
+             system.returnVehicle(vehicleID, actualRentalDays);
+         } catch (const invalid_argument& e) {
+             cout << "Error: " << e.what() << "\n";
+             cin.clear();  
+             cin.ignore(numeric_limits<streamsize>::max(), '\n');  
+         } catch (const exception& e) {
+             cout << "An unexpected error occurred: " << e.what() << "\n";
+         }
+     }
+     
+    void adminLogin() {
+         string licenseID, password;
+     
+         try {
+             cout << "Enter Admin License ID: ";
+             cin >> licenseID;
+             cout << "Enter Admin Password: ";
+             cin >> password;
+     
+             User* adminUser = system.authenticateUser(licenseID, password);
+             if (adminUser == nullptr || adminUser->getRole() != "admin") {
+                 throw runtime_error("Invalid credentials. Admin login failed.");
+             }
+             
+             cout << "Admin login successful!\n";
+             adminMenu();
+         } catch (const runtime_error& e) {
+             cout << "Error: " << e.what() << "\n";
+         } catch (const exception& e) {
+             cout << "An unexpected error occurred: " << e.what() << "\n";
+         }
+     }
 
     void filterVehicles() {
         double minPrice, maxPrice;
@@ -423,23 +460,6 @@ public:
         }
 
         system.filterVehicles(minPrice, maxPrice, type);
-    }
-
-    void adminLogin() {
-        string licenseID, password;
-
-        cout << "Enter Admin License ID: ";
-        cin >> licenseID;
-        cout << "Enter Admin Password: ";
-        cin >> password;
-
-        User* adminUser = system.authenticateUser(licenseID, password);
-        if (adminUser != nullptr && adminUser->getRole() == "admin") {
-            cout << "Admin login successful!\n";
-            adminMenu();
-        } else {
-            cout << "Invalid credentials. Admin login failed.\n";
-        }
     }
 
     void adminMenu() {
